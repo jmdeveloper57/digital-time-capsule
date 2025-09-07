@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Digital Time Capsule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            transition: background 1.2s ease-in-out, color 0.5s ease-in-out;
+            background: linear-gradient(135deg, #e0f6ff 0%, #c4e9f7 100%);
+        }
+        .letter-theme {
+            background: url('https://www.transparenttextures.com/patterns/clean-paper.png'), linear-gradient(135deg, #f8f3eb 0%, #a47533 100%);
+            color: #583e29;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="%236a4c33" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 0 1 7.5 3c2.25 0 4.08 1.48 5.5 3.5.75-.01 1.5.08 2.25.26 1.76.46 3.12 1.83 3.58 3.59.18.75.27 1.5.26 2.25C22 12.28 18.6 15.36 12 21.35z"/></svg>') 12 12, auto;
+        }
+        .image-theme {
+            background: linear-gradient(135deg, #e0f6ff 0%, #c4e9f7 100%);
+            color: #2b5665;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="%2355a0b7" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.5V11h2v6.5h-2zm-1.5-11.5a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3z"/></svg>') 12 12, auto;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.8s ease-out;
+        }
+        .btn-primary {
+            @apply py-3 px-6 rounded-full text-white text-lg font-bold shadow-lg transition-all duration-300 transform hover:scale-105;
+        }
+        .btn-secondary {
+            @apply py-3 px-6 rounded-full text-white text-lg font-bold shadow-lg transition-all duration-300 transform hover:scale-105;
+        }
+        .input-field {
+            @apply w-full p-4 rounded-xl text-gray-800 border focus:outline-none focus:ring-2 transition-all duration-300;
+        }
+        .modal {
+            transition: all 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-in-up {
+            animation: slideInUp 0.6s ease-out forwards;
+        }
+        .btn-letter {
+            background: linear-gradient(45deg, #8c6a3f, #a47533);
+            box-shadow: 0 7px 20px rgba(140, 106, 63, 0.55);
+        }
+        .btn-image {
+            background: linear-gradient(45deg, #55a0b7, #79c5df);
+            box-shadow: 0 7px 20px rgba(85, 160, 183, 0.55);
+        }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center min-h-screen">
+    <div class="container mx-auto p-6 card mt-8">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-2 drop-shadow-sm">Digital Time Capsule</h1>
+
+        <!-- CREATOR VIEW -->
+        <div id="creator-view" class="animate-slide-in-up">
+            <div id="user-info" class="text-sm text-center mb-4"></div>
+
+            <!-- Main Navigation -->
+            <div id="nav-container" class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 mb-8 overflow-x-auto hidden">
+                <button id="message-capsule-btn" class="py-2 px-4 sm:px-6 rounded-full text-white font-semibold shadow-md transition duration-300 flex-grow hover:scale-105 btn-letter">Create Message</button>
+                <button id="image-capsule-btn" class="py-2 px-4 sm:px-6 rounded-full text-white font-semibold shadow-md transition duration-300 flex-grow hover:scale-105 btn-image">Create Image</button>
+                <button id="my-capsules-btn" class="py-2 px-4 sm:px-6 rounded-full text-white font-semibold shadow-md transition duration-300 flex-grow hover:scale-105 bg-gray-500 hover:bg-gray-600">My Capsules</button>
+                <button id="logout-btn" class="py-2 px-4 sm:px-6 rounded-full text-white font-semibold shadow-md transition duration-300 flex-grow hover:scale-105 bg-red-500 hover:bg-red-600">Log Out</button>
+            </div>
+
+            <!-- Login View -->
+            <div id="login-view" class="text-center">
+                <h2 class="text-2xl font-bold mb-4">Sign In or Sign Up</h2>
+                <div class="space-y-4">
+                    <input type="email" id="email-input" placeholder="Enter your email" class="input-field border-gray-300 focus:ring-indigo-500" />
+                    <input type="password" id="password-input" placeholder="Enter your password" class="input-field border-gray-300 focus:ring-indigo-500" />
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center">
+                        <button id="signin-btn" class="btn-primary bg-indigo-600 hover:bg-indigo-700">Sign In</button>
+                        <button id="signup-btn" class="btn-primary bg-teal-600 hover:bg-teal-700">Sign Up</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Message View -->
+            <div id="create-message-view" class="space-y-6 hidden">
+                <h2 class="text-2xl font-bold text-center mb-4">Create a Message Capsule</h2>
+                <div class="p-6 rounded-lg bg-gray-100/50 backdrop-blur-sm card">
+                    <label for="letter-type" class="block text-lg font-medium mb-2">Select Letter Type</label>
+                    <div id="letter-type" class="flex flex-wrap gap-2 sm:gap-4">
+                        <button data-type="Dear Future Me," class="py-2 px-4 rounded-full bg-pink-300 text-pink-800 font-semibold hover:bg-pink-400 transition duration-300">Letter to My Future Self</button>
+                        <button data-type="To my dear loved one," class="py-2 px-4 rounded-full bg-blue-300 text-blue-800 font-semibold hover:bg-blue-400 transition duration-300">Message to a Loved One</button>
+                        <button data-type="Remember this moment," class="py-2 px-4 rounded-full bg-yellow-300 text-yellow-800 font-semibold hover:bg-yellow-400 transition duration-300">A Memory of Today</button>
+                        <button data-type="My hopes and dreams are," class="py-2 px-4 rounded-full bg-purple-300 text-purple-800 font-semibold hover:bg-purple-400 transition duration-300">Hopes and Dreams for the Future</button>
+                    </div>
+                </div>
+                <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                    <label for="message" class="block text-lg font-medium mb-2">Write Your Letter</label>
+                    <textarea id="message" rows="8" class="w-full h-full p-4 text-lg bg-gray-100 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all duration-300" placeholder="Start typing your letter here..."></textarea>
+                </div>
+                <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                    <label for="optional-message" class="block text-lg font-medium mb-2">Write a message to be revealed 5 minutes before opening (Optional)</label>
+                    <textarea id="optional-message" rows="4" class="w-full p-4 rounded-xl text-gray-800 border focus:outline-none focus:ring-2 transition-all duration-300 bg-white/70 border-gray-300 focus:ring-indigo-500"></textarea>
+                </div>
+                <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                    <label for="open-date" class="block text-lg font-medium mb-2">Open on This Date</label>
+                    <input type="datetime-local" id="open-date" class="input-field bg-white/70 border-gray-300 focus:ring-indigo-500" />
+                </div>
+                <div class="text-center space-y-4">
+                    <button id="create-message-btn" class="btn-primary btn-letter">Create Message Capsule</button>
+                    <button id="home-from-message-btn" class="btn-secondary bg-gray-500 hover:bg-gray-600">Home</button>
+                </div>
+                <div id="capsule-link-container" class="mt-8 p-4 rounded-lg hidden card bg-gray-100/50">
+                    <h3 class="text-lg font-semibold text-center mb-2">Your Capsule Link (Copy and Share)</h3>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="capsule-link-input" readonly class="flex-grow p-2 rounded-lg bg-white border border-gray-300 text-indigo-600 font-mono" />
+                        <button id="copy-link-btn" class="py-2 px-4 rounded-full bg-indigo-500 text-white text-sm hover:bg-indigo-600 transition duration-300">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Image View -->
+            <div id="create-image-view" class="space-y-6 hidden">
+                <h2 class="text-2xl font-bold text-center mb-4">Create an Image Capsule</h2>
+                <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                    <label for="image-upload" class="block text-lg font-medium mb-2">Upload Images</label>
+                    <input type="file" id="image-upload" multiple accept="image/*" class="input-field bg-white/70 border-gray-300 focus:ring-blue-500" />
+                    <div id="image-preview" class="mt-4 flex flex-wrap gap-4"></div>
+                </div>
+                <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                    <label for="image-optional-message" class="block text-lg font-medium mb-2">Write a message to be revealed 5 minutes before opening (Optional)</label>
+                    <textarea id="image-optional-message" rows="4" class="w-full p-4 rounded-xl text-gray-800 border focus:outline-none focus:ring-2 transition-all duration-300 bg-white/70 border-gray-300 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                    <label for="image-open-date" class="block text-lg font-medium mb-2">Open on This Date</label>
+                    <input type="datetime-local" id="image-open-date" class="input-field bg-white/70 border-gray-300 focus:ring-blue-500" />
+                </div>
+                <div class="text-center space-y-4">
+                    <button id="create-image-btn" class="btn-primary btn-image">Create Image Capsule</button>
+                    <button id="home-from-image-btn" class="btn-secondary bg-gray-500 hover:bg-gray-600">Home</button>
+                </div>
+            </div>
+
+            <!-- My Capsules View -->
+            <div id="my-capsules-view" class="hidden">
+                <h2 class="text-2xl font-bold text-center mb-4">My Capsules</h2>
+                <div id="capsules-list" class="space-y-4">
+                    <p class="text-center">Loading your capsules...</p>
+                </div>
+                <div class="text-center mt-6">
+                    <button id="home-from-mycapsules-btn" class="btn-secondary bg-gray-500 hover:bg-gray-600">Home</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEWER VIEW -->
+        <div id="viewer-view" class="hidden">
+            <div class="p-6 bg-gray-100/50 rounded-lg backdrop-blur-sm card">
+                <h2 class="text-2xl font-semibold mb-4 text-center">Capsule Status</h2>
+                <div id="countdown-timer" class="text-4xl sm:text-5xl md:text-6xl font-extrabold my-8 text-center animate-pulse">...loading...</div>
+                <div id="capsule-content-container" class="text-left mt-8 p-4 rounded-lg bg-white hidden animate-slide-in-up card">
+                    <h3 id="main-content-header" class="text-xl font-semibold mb-2">Your Message from the Past:</h3>
+                    <p id="capsule-message-content" class="whitespace-pre-wrap mb-4"></p>
+                    <p id="capsule-optional-message-content" class="whitespace-pre-wrap mb-4 italic text-sm"></p>
+                    <div id="capsule-images-content" class="flex flex-wrap gap-4"></div>
+                </div>
+                <p id="capsule-status-text" class="text-lg mt-4 text-center">The capsule is sealed.</p>
+            </div>
+            <div class="text-center mt-6">
+                <a href="index.html" class="py-2 px-6 rounded-full text-white font-semibold shadow-md transition duration-300 bg-indigo-600 hover:bg-indigo-700">Home</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Messages -->
+    <div id="message-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full border border-gray-300 animate-slide-in-up">
+            <h3 id="modal-title" class="text-lg font-semibold mb-4 text-gray-800"></h3>
+            <p id="modal-message" class="text-gray-600 mb-6"></p>
+            <div class="text-right">
+                <button id="modal-close-btn" class="py-2 px-6 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition duration-300">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Deletion -->
+    <div id="confirm-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full border border-gray-300 animate-slide-in-up">
+            <h3 id="confirm-modal-title" class="text-lg font-semibold mb-4 text-gray-800">Confirm Deletion</h3>
+            <p id="confirm-modal-message" class="text-gray-600 mb-6">Are you sure you want to delete this capsule? This action cannot be undone.</p>
+            <div class="flex justify-end gap-2">
+                <button id="confirm-cancel-btn" class="py-2 px-4 rounded-full bg-gray-500 text-white font-semibold hover:bg-gray-600 transition duration-300">Cancel</button>
+                <button id="confirm-delete-btn" class="py-2 px-4 rounded-full bg-red-600 text-white font-semibold hover:bg-red-700 transition duration-300">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, addDoc, collection, Timestamp, doc, onSnapshot, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        setLogLevel('debug');
+
+        // Set this with your/firebase project config dynamically if needed
+        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
+        const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
+        const initialAuthToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : undefined;
+
+        let db, auth, userId, userEmail, isReady = false;
+        let countdownInterval;
+
+        // Initialize Firebase app and services
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // UI Elements
+        const creatorView = document.getElementById('creator-view');
+        const viewerView = document.getElementById('viewer-view');
+        const loginView = document.getElementById('login-view');
+        const createMessageView = document.getElementById('create-message-view');
+        const createImageView = document.getElementById('create-image-view');
+        const myCapsulesView = document.getElementById('my-capsules-view');
+        const capsulesList = document.getElementById('capsules-list');
+        const body = document.body;
+        const userInfo = document.getElementById('user-info');
+        const navContainer = document.getElementById('nav-container');
+
+        // Navigation buttons
+        const messageCapsuleBtn = document.getElementById('message-capsule-btn');
+        const imageCapsuleBtn = document.getElementById('image-capsule-btn');
+        const myCapsulesBtn = document.getElementById('my-capsules-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // Home buttons in subviews
+        const homeFromMessageBtn = document.getElementById('home-from-message-btn');
+        const homeFromImageBtn = document.getElementById('home-from-image-btn');
+        const homeFromMyCapsulesBtn = document.getElementById('home-from-mycapsules-btn');
+
+        // Message Capsule Elements
+        const letterTypeContainer = document.getElementById('letter-type');
+        const messageInput = document.getElementById('message');
+        const optionalMessageInput = document.getElementById('optional-message');
+        const createMessageBtn = document.getElementById('create-message-btn');
+        const openDateInput = document.getElementById('open-date');
+        let selectedLetterType = '';
+
+        // Image Capsule Elements
+        const imageUploadInput = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const imageOptionalMessageInput = document.getElementById('image-optional-message');
+        const imageOpenDateInput = document.getElementById('image-open-date');
+        const createImageBtn = document.getElementById('create-image-btn');
+        const MAX_FILE_SIZE = 500 * 1024; // 500 KB
+        let uploadedImages = [];
+
+        // General Elements
+        const capsuleLinkContainer = document.getElementById('capsule-link-container');
+        const capsuleLinkInput = document.getElementById('capsule-link-input');
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+
+        // Login Elements
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const signinBtn = document.getElementById('signin-btn');
+        const signupBtn = document.getElementById('signup-btn');
+
+        // Viewer Elements
+        const countdownTimer = document.getElementById('countdown-timer');
+        const capsuleContentContainer = document.getElementById('capsule-content-container');
+        const capsuleMessageContent = document.getElementById('capsule-message-content');
+        const capsuleOptionalMessageContent = document.getElementById('capsule-optional-message-content');
+        const mainContentHeader = document.getElementById('main-content-header');
+        const capsuleImagesContent = document.getElementById('capsule-images-content');
+        const capsuleStatusText = document.getElementById('capsule-status-text');
+
+        // Custom Modal Elements
+        const modal = document.getElementById('message-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // Confirmation Modal for Deletion
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        let capsuleIdToDelete = null;
+
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.classList.add('active');
+        }
+
+        modalCloseBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        function showConfirmModal(capsuleId) {
+            capsuleIdToDelete = capsuleId;
+            confirmModal.classList.add('active');
+        }
+
+        confirmCancelBtn.addEventListener('click', () => {
+            confirmModal.classList.remove('active');
+            capsuleIdToDelete = null;
+        });
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (capsuleIdToDelete) {
+                try {
+                    const docRef = doc(db, `artifacts/${appId}/public/data/timeCapsules`, capsuleIdToDelete);
+                    await deleteDoc(docRef);
+                    showModal("Success!", "The capsule has been deleted.");
+                } catch (error) {
+                    console.error("Error deleting document:", error);
+                    showModal("Error", "Failed to delete the capsule. Please try again.");
+                } finally {
+                    confirmModal.classList.remove('active');
+                    capsuleIdToDelete = null;
+                }
+            }
+        });
+
+        function applyTheme(themeClass) {
+            body.className = `p-4 flex flex-col items-center min-h-screen ${themeClass}`;
+            document.querySelector('h1').style.color = themeClass === 'letter-theme' ? '#3c2f21' : '#2b5665';
+            document.getElementById('countdown-timer').style.color = themeClass === 'letter-theme' ? '#a47533' : '#55a0b7';
+            document.getElementById('home-from-mycapsules-btn').style.color = '#fff';
+            document.getElementById('home-from-message-btn').style.color = '#fff';
+            document.getElementById('home-from-image-btn').style.color = '#fff';
+        }
+
+        // Show specific main views
+        function showView(view) {
+            creatorView.classList.add('hidden');
+            viewerView.classList.add('hidden');
+            view.classList.remove('hidden');
+        }
+
+        // Show specific subviews and adjust background
+        function showSubView(view, themeClass) {
+            loginView.classList.add('hidden');
+            createMessageView.classList.add('hidden');
+            createImageView.classList.add('hidden');
+            myCapsulesView.classList.add('hidden');
+            view.classList.remove('hidden');
+            applyTheme(themeClass);
+        }
+
+        // On window load check URL for capsuleId and user auth status
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const capsuleId = urlParams.get('capsuleId');
+
+            if (capsuleId) {
+                showView(viewerView);
+                displayCapsule(capsuleId);
+                applyTheme('image-theme'); // Default theme for viewer
+            } else {
+                showView(creatorView);
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userEmail = user.email;
+                        isReady = true;
+                        userInfo.textContent = `Logged in as: ${user.email}`;
+                        navContainer.classList.remove('hidden');
+                        showSubView(createMessageView, 'letter-theme');
+                    } else {
+                        isReady = true;
+                        userInfo.textContent = "";
+                        navContainer.classList.add('hidden');
+                        showSubView(loginView, 'image-theme');
+                        if (initialAuthToken) {
+                            try {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } catch (error) {
+                                console.error("Firebase auth error:", error);
+                                showModal("Authentication Failed", "There was an issue with authentication. Please try again.");
+                            }
+                        } else {
+                             try {
+                                 await signInAnonymously(auth);
+                             } catch (anonError) {
+                                 console.error("Anonymous sign-in error:", anonError);
+                                 showModal("Authentication Failed", "Failed to sign in anonymously.");
+                             }
+                         }
+                    }
+                });
+            }
+        };
+
+        // Navigation button listeners
+        signinBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Sign In error:", error);
+                showModal("Sign In Failed", "Invalid email or password. Please try again.");
+            }
+        });
+
+        signupBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                showModal("Account Created", "Your account has been created successfully. You are now logged in.");
+            } catch (error) {
+                console.error("Sign Up error:", error);
+                showModal("Sign Up Failed", "Failed to create account. Passwords must be at least 6 characters. " + error.message);
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Log Out error:", error);
+                showModal("Error", "Failed to log out. Please try again.");
+            }
+        });
+
+        messageCapsuleBtn.addEventListener('click', () => {
+            showSubView(createMessageView, 'letter-theme');
+        });
+
+        imageCapsuleBtn.addEventListener('click', () => {
+            showSubView(createImageView, 'image-theme');
+        });
+
+        myCapsulesBtn.addEventListener('click', () => {
+            showSubView(myCapsulesView, 'image-theme');
+            fetchAndDisplayMyCapsules();
+        });
+
+        homeFromMessageBtn.addEventListener('click', () => {
+            showSubView(createMessageView, 'letter-theme');
+        });
+
+        homeFromImageBtn.addEventListener('click', () => {
+            showSubView(createImageView, 'image-theme');
+        });
+
+        homeFromMyCapsulesBtn.addEventListener('click', () => {
+            showSubView(createMessageView, 'letter-theme');
+        });
+
+        // Letter type selection and dynamic heading
+        letterTypeContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                document.querySelectorAll('#letter-type button').forEach(btn => btn.classList.remove('bg-indigo-500', 'text-white'));
+                e.target.classList.add('bg-indigo-500', 'text-white');
+                const letterRecipient = e.target.getAttribute('data-type');
+                messageInput.value = letterRecipient;
+                selectedLetterType = e.target.dataset.type;
+            }
+        });
+
+        // Create message capsule
+        createMessageBtn.addEventListener('click', async () => {
+            if (!isReady) {
+                showModal("Error", "The app is not ready. Please wait a moment for authentication to complete.");
+                return;
+            }
+            const message = messageInput.value.trim();
+            const optionalMessage = optionalMessageInput.value.trim();
+            const openDateString = openDateInput.value;
+
+            if (!openDateString) {
+                showModal("Error", "Please select an opening date.");
+                return;
+            }
+
+            const openDate = new Date(openDateString);
+            const now = new Date();
+
+            if (openDate <= now) {
+                showModal("Error", "The opening date must be in the future.");
+                return;
+            }
+
+            try {
+                const capsulesCollection = collection(db, `artifacts/${appId}/public/data/timeCapsules`);
+                const newCapsuleRef = await addDoc(capsulesCollection, {
+                    type: 'message',
+                    message,
+                    optionalMessage,
+                    openDate: Timestamp.fromDate(openDate),
+                    createdAt: Timestamp.now(),
+                    ownerId: userId,
+                    ownerEmail: userEmail
+                });
+
+                const capsuleUrl = `${window.location.origin}/index.html?capsuleId=${newCapsuleRef.id}`;
+                capsuleLinkInput.value = capsuleUrl;
+                capsuleLinkContainer.classList.remove('hidden');
+
+                showModal("Success!", "Your time capsule has been created. Copy and save the link!");
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showModal("Error", "Failed to create the time capsule. Please try again.");
+            }
+        });
+
+        // Image upload and preview logic
+        imageUploadInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+
+            if (uploadedImages.length + files.length > 5) {
+                showModal("Too Many Images", "You can only upload a maximum of 5 images.");
+                return;
+            }
+
+            Array.from(files).forEach(file => {
+                if (file.size > MAX_FILE_SIZE) {
+                    showModal("File Too Large", `Image '${file.name}' is too large. Max size is ${Math.round(MAX_FILE_SIZE / 1024)}KB.`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64String = e.target.result;
+                    const imageId = 'img-' + Date.now() + Math.random().toString(36).substring(2, 9);
+                    uploadedImages.push({ id: imageId, data: base64String });
+
+                    const imageContainer = document.createElement('div');
+                    imageContainer.classList.add('relative', 'w-24', 'h-24', 'group');
+                    imageContainer.dataset.id = imageId;
+
+                    const img = document.createElement('img');
+                    img.src = base64String;
+                    img.classList.add('w-full', 'h-full', 'object-cover', 'rounded-lg', 'border', 'border-gray-300');
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.innerHTML = '&#x2715;';
+                    removeBtn.classList.add('absolute', 'top-0', 'right-0', 'bg-red-500', 'text-white', 'rounded-full', 'w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'text-xs', 'opacity-0', 'group-hover:opacity-100', 'transition-opacity', 'duration-200');
+                    removeBtn.title = 'Remove image';
+
+                    removeBtn.addEventListener('click', () => {
+                        uploadedImages = uploadedImages.filter(imgObj => imgObj.id !== imageId);
+                        imageContainer.remove();
+                    });
+
+                    imageContainer.appendChild(img);
+                    imageContainer.appendChild(removeBtn);
+                    imagePreview.appendChild(imageContainer);
+                };
+                reader.readAsDataURL(file);
+            });
+            imageUploadInput.value = '';
+        });
+
+        // Create image capsule
+        createImageBtn.addEventListener('click', async () => {
+            if (!isReady) {
+                showModal("Error", "The app is not ready. Please wait a moment for authentication to complete.");
+                return;
+            }
+            const optionalMessage = imageOptionalMessageInput.value.trim();
+            const openDateString = imageOpenDateInput.value;
+
+            if (uploadedImages.length === 0) {
+                showModal("Error", "Please upload at least one image.");
+                return;
+            }
+            if (!openDateString) {
+                showModal("Error", "Please select an opening date.");
+                return;
+            }
+
+            const openDate = new Date(openDateString);
+            const now = new Date();
+
+            if (openDate <= now) {
+                showModal("Error", "The opening date must be in the future.");
+                return;
+            }
+
+            try {
+                const capsulesCollection = collection(db, `artifacts/${appId}/public/data/timeCapsules`);
+                const newCapsuleRef = await addDoc(capsulesCollection, {
+                    type: 'image',
+                    optionalMessage,
+                    images: uploadedImages.map(imgObj => imgObj.data),
+                    openDate: Timestamp.fromDate(openDate),
+                    createdAt: Timestamp.now(),
+                    ownerId: userId,
+                    ownerEmail: userEmail
+                });
+
+                const capsuleUrl = `${window.location.origin}/index.html?capsuleId=${newCapsuleRef.id}`;
+                capsuleLinkInput.value = capsuleUrl;
+                capsuleLinkContainer.classList.remove('hidden');
+                showSubView(createImageView, 'image-theme');
+
+                showModal("Success!", "Your time capsule has been created. Copy and save the link!");
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showModal("Error", "Failed to create the time capsule. Please try again.");
+            }
+        });
+
+        // Copy capsule secret link button
+        copyLinkBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(capsuleLinkInput.value);
+                showModal("Copied!", "The secret link has been copied to your clipboard.");
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showModal("Copy Failed", "Could not copy the link. Please copy it manually from the text box.");
+            }
+        });
+
+        // Fetch and display user's capsules in "My Capsules" view
+        function fetchAndDisplayMyCapsules() {
+            if (!isReady) return;
+            capsulesList.innerHTML = '<p class="text-center text-gray-500">Loading your capsules...</p>';
+
+            const capsulesCollectionRef = collection(db, `artifacts/${appId}/public/data/timeCapsules`);
+            const q = query(capsulesCollectionRef, where("ownerId", "==", userId));
+
+            onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    capsulesList.innerHTML = '<p class="text-center text-gray-500">You have not created any capsules yet. Go to the home page to create one!</p>';
+                } else {
+                    let capsulesHtml = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const openDate = data.openDate.toDate().toLocaleString();
+                        const capsuleId = doc.id;
+                        const cardTheme = data.type === 'message' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+                        const linkColor = data.type === 'message' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600';
+                        const capsuleType = data.type.charAt(0).toUpperCase() + data.type.slice(1);
+                        const capsuleIcon = data.type === 'message' ? '<i class="fas fa-envelope mr-2"></i>' : '<i class="fas fa-image mr-2"></i>';
+
+                        capsulesHtml += `
+                            <div class="p-4 rounded-lg shadow-sm border card ${cardTheme}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-md font-semibold">${capsuleIcon} ${capsuleType} Capsule</p>
+                                    <button class="delete-capsule-btn text-red-600 hover:text-red-800 transition-colors" data-id="${capsuleId}" title="Delete Capsule">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                                <p class="text-sm">Capsule ID: <span class="font-normal break-all">${capsuleId}</span></p>
+                                <p class="text-sm">Opens on: <span class="font-medium">${openDate}</span></p>
+                                <div class="mt-4 text-right">
+                                    <a href="index.html?capsuleId=${capsuleId}" class="py-2 px-4 rounded-full text-white text-sm transition duration-300 ${linkColor}">View Capsule</a>
+                                    <button class="copy-link-btn py-2 px-4 rounded-full text-white text-sm transition duration-300 bg-gray-500 hover:bg-gray-600" data-link="index.html?capsuleId=${capsuleId}">Copy Link</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    capsulesList.innerHTML = capsulesHtml;
+
+                    document.querySelectorAll('.copy-link-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const linkToCopy = `${window.location.origin}/${e.target.dataset.link}`;
+                            navigator.clipboard.writeText(linkToCopy).then(() => {
+                                showModal("Copied!", "The capsule link has been copied to your clipboard.");
+                            }).catch(err => {
+                                console.error('Failed to copy text: ', err);
+                                showModal("Copy Failed", "Could not copy the link. Please copy it manually.");
+                            });
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-capsule-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const capsuleId = e.currentTarget.dataset.id;
+                            showConfirmModal(capsuleId);
+                        });
+                    });
+                }
+            }, (error) => {
+                console.error("Error fetching my capsules: ", error);
+                capsulesList.innerHTML = '<p class="text-center text-red-500">Error loading your capsules. Please try again.</p>';
+            });
+        }
+
+        // Display a single capsule for a viewer
+        function displayCapsule(capsuleId) {
+            const capsuleDocRef = doc(db, `artifacts/${appId}/public/data/timeCapsules`, capsuleId);
+            onSnapshot(capsuleDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const openDate = data.openDate.toDate();
+                    const now = new Date();
+                    const fiveMinutesBefore = new Date(openDate.getTime() - 5 * 60 * 1000);
+
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                    }
+                    if (now >= openDate) {
+                        capsuleContentContainer.classList.remove('hidden');
+                        countdownTimer.textContent = 'Capsule is Open!';
+                        capsuleStatusText.textContent = 'This time capsule is now open.';
+                        if (data.type === 'message') {
+                            applyTheme('letter-theme');
+                            mainContentHeader.textContent = "Your Message from the Past:";
+                            capsuleMessageContent.textContent = data.message || 'No message provided.';
+                            capsuleMessageContent.classList.remove('hidden');
+                            capsuleImagesContent.classList.add('hidden');
+                        } else if (data.type === 'image') {
+                            applyTheme('image-theme');
+                            mainContentHeader.textContent = "Your Images from the Past:";
+                            capsuleImagesContent.classList.remove('hidden');
+                            capsuleMessageContent.classList.add('hidden');
+                            capsuleImagesContent.innerHTML = '';
+                            if (data.images && data.images.length > 0) {
+                                data.images.forEach(base64Data => {
+                                    const img = document.createElement('img');
+                                    img.src = base64Data;
+                                    img.classList.add('w-full', 'md:w-1/2', 'lg:w-1/3', 'rounded-lg', 'shadow-lg');
+                                    capsuleImagesContent.appendChild(img);
+                                });
+                            } else {
+                                capsuleImagesContent.innerHTML = '<p class="text-center text-gray-500">No images were found in this capsule.</p>';
+                            }
+                        }
+                        capsuleOptionalMessageContent.classList.add('hidden');
+                    } else if (now >= fiveMinutesBefore) {
+                        capsuleStatusText.textContent = 'The capsule is about to open!';
+                        capsuleOptionalMessageContent.textContent = data.optionalMessage || 'No optional message was provided.';
+                        capsuleOptionalMessageContent.classList.remove('hidden');
+                        countdownTimer.textContent = 'Less than 5 minutes!';
+                        countdownInterval = setInterval(() => {
+                            const distance = openDate.getTime() - new Date().getTime();
+                            if (distance <= 0) {
+                                clearInterval(countdownInterval);
+                                displayCapsule(capsuleId);
+                            } else {
+                                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                                countdownTimer.textContent = `${minutes}m ${seconds}s`;
+                            }
+                        }, 1000);
+                    } else {
+                        capsuleStatusText.textContent = 'The capsule is sealed.';
+                        countdownInterval = setInterval(() => {
+                            const distance = openDate.getTime() - new Date().getTime();
+                            if (distance <= 0) {
+                                clearInterval(countdownInterval);
+                                displayCapsule(capsuleId);
+                            } else {
+                                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                                countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                            }
+                        }, 1000);
+                    }
+                } else {
+                    showModal("Not Found", "This capsule link is invalid or has been deleted.");
+                    countdownTimer.textContent = 'Not Found';
+                    capsuleStatusText.textContent = 'Invalid capsule link.';
+                    console.error("No such document!");
+                }
+            }, (error) => {
+                console.error("Error getting document: ", error);
+                showModal("Error", "There was an error loading the capsule. Please check your internet connection and try again.");
+                countdownTimer.textContent = 'Error';
+                capsuleStatusText.textContent = 'Error loading capsule.';
+            });
+        }
+    </script>
+</body>
+</html>
