@@ -1,37 +1,63 @@
-Digital Time Capsule
-This project is a web application that allows users to create and securely store messages and images in a digital "time capsule." The content is sealed and can only be accessed on a specific future date chosen by the creator.
+# 📦 Digital Time Capsule
 
-The app is designed as a single, self-contained HTML file for easy sharing and deployment.
+A web application that lets users securely store and share personal memories, messages, and images in a digital "time capsule." Each capsule is sealed and can only be accessed on a specific future date chosen by the creator.
 
-Features
-Message Capsules: Users can compose and seal personal messages or letters for the future.
+This app is packaged as a single, self-contained HTML file for easy sharing and deployment.
 
-Image Capsules: The app supports creating capsules filled with up to 5 images, perfect for preserving photo memories.
+---
 
-Scheduled Delivery: Each capsule is locked until a specific, user-defined date and time.
+## ✨ Features
 
-Secure Sharing: After creation, the app provides a unique, shareable link that can be sent to recipients or saved for later.
+- **Message Capsules**  
+  Compose and seal personal messages or letters for the future.
 
-Real-Time Status: A live countdown timer shows viewers exactly how long until a capsule can be opened.
+- **Image Capsules**  
+  Upload up to 5 images per capsule—perfect for preserving photo memories.
 
-User Dashboard: Users can sign in with their email and password to view and manage all the capsules they have created.
+- **Scheduled Delivery**  
+  Capsules remain locked until a user-defined date and time.
 
-Secure Storage: The application uses Firebase Firestore for persistent and secure data storage.
+- **Secure Sharing**  
+  Each capsule generates a unique, shareable link for recipients or future access.
 
-How to Run
-This is a single-file web application, which means you do not need a web server or any complex setup.
+- **Real-Time Status**  
+  A live countdown timer shows exactly how long until a capsule can be opened.
 
-Download the file: Save the digital_time_capsule.html file to your computer.
+- **User Dashboard**  
+  Users can sign in with email and password to view and manage all their capsules.
 
-Open in a browser: Simply open the file directly in any modern web browser (like Chrome, Firefox, or Edge).
+- **Secure Storage**  
+  Capsule data is stored securely using Firebase Firestore.
 
-The application will load and function as intended.
+---
 
-Technologies Used
-HTML, JavaScript (Plain JS): The core of the application's structure and logic.
+## 🧑‍💻 How to Run
 
-Tailwind CSS: A utility-first CSS framework used for all styling and a responsive design.
+This is a single-file web application—no server or setup required.
 
-Firebase Firestore: The cloud-hosted NoSQL database used for storing all time capsule data.
+1. **Download**: Save the `digital_time_capsule.html` file to your computer.
+2. **Open**: Launch the file in any modern browser (Chrome, Firefox, Edge).
+3. **Use**: The app will load and function as intended.
 
-Firebase Authentication: Used to securely manage user sign-in and sign-up with email and password.
+---
+
+## 🛠️ Technologies Used
+
+- **HTML & JavaScript (Plain JS)**  
+  Core structure and logic of the application.
+
+- **Tailwind CSS**  
+  Utility-first CSS framework for styling and responsive design.
+
+- **Firebase Firestore**  
+  Cloud-hosted NoSQL database for secure, persistent data storage.
+
+- **Firebase Authentication**  
+  Handles user sign-in and sign-up using email and password.
+
+---
+
+## 📬 Feedback & Contributions
+
+If you have suggestions, ideas, or run into any issues, feel free to open an issue or submit a pull request. Contributions are welcome!
+
