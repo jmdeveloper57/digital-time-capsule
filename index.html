@@ -226,20 +226,10 @@
 
         setLogLevel('debug');
 
-        // PASTE YOUR FIREBASE CONFIG HERE
-        // Example (replace with your own):
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        // END OF CONFIG
-
-        const appId = firebaseConfig.appId;
-        const initialAuthToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : undefined;
+        // Correctly initialize Firebase using the global variables.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
 
         let db, auth, userId, userEmail, isReady = false;
         let countdownInterval;
@@ -386,50 +376,51 @@
             applyTheme(themeClass);
         }
 
-        // On window load check URL for capsuleId and user auth status
+        // Authentication and user flow logic
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userEmail = user.email;
+                isReady = true;
+                userInfo.textContent = `Logged in as: ${user.email}`;
+                navContainer.classList.remove('hidden');
+                showSubView(createMessageView, 'letter-theme');
+            } else {
+                isReady = true;
+                userInfo.textContent = "";
+                navContainer.classList.add('hidden');
+                showSubView(loginView, 'image-theme');
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } catch (error) {
+                        console.error("Firebase auth error:", error);
+                        showModal("Authentication Failed", "There was an issue with authentication. Please try again.");
+                    }
+                } else {
+                     try {
+                         await signInAnonymously(auth);
+                     } catch (anonError) {
+                         console.error("Anonymous sign-in error:", anonError);
+                         showModal("Authentication Failed", "Failed to sign in anonymously.");
+                     }
+                 }
+            }
+        });
+
+        // On window load check URL for capsuleId and auth state
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const capsuleId = urlParams.get('capsuleId');
-
             if (capsuleId) {
                 showView(viewerView);
                 displayCapsule(capsuleId);
                 applyTheme('image-theme'); // Default theme for viewer
             } else {
                 showView(creatorView);
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        userEmail = user.email;
-                        isReady = true;
-                        userInfo.textContent = `Logged in as: ${user.email}`;
-                        navContainer.classList.remove('hidden');
-                        showSubView(createMessageView, 'letter-theme');
-                    } else {
-                        isReady = true;
-                        userInfo.textContent = "";
-                        navContainer.classList.add('hidden');
-                        showSubView(loginView, 'image-theme');
-                        if (initialAuthToken) {
-                            try {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                            } catch (error) {
-                                console.error("Firebase auth error:", error);
-                                showModal("Authentication Failed", "There was an issue with authentication. Please try again.");
-                            }
-                        } else {
-                             try {
-                                 await signInAnonymously(auth);
-                             } catch (anonError) {
-                                 console.error("Anonymous sign-in error:", anonError);
-                                 showModal("Authentication Failed", "Failed to sign in anonymously.");
-                             }
-                         }
-                    }
-                });
             }
         };
-        
+
         // Login/Sign Up Logic
         authToggleBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -682,3 +673,159 @@
         function fetchAndDisplayMyCapsules() {
             if (!isReady) return;
             capsulesList.innerHTML = '<p class="text-center text-gray-500">Loading your capsules...</p>';
+            
+            // Use onSnapshot for real-time updates
+            const q = query(collection(db, `artifacts/${appId}/public/data/timeCapsules`), where("ownerId", "==", userId));
+            onSnapshot(q, (querySnapshot) => {
+                if (querySnapshot.empty) {
+                    capsulesList.innerHTML = '<p class="text-center text-gray-500">You haven\'t created any capsules yet.</p>';
+                } else {
+                    capsulesList.innerHTML = '';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const openDate = data.openDate.toDate();
+                        const now = new Date();
+                        const status = now > openDate ? 'Opened' : 'Sealed';
+                        const capsuleLink = `${window.location.origin}/index.html?capsuleId=${doc.id}`;
+                        const isMessageCapsule = data.type === 'message';
+                        const capsuleSummary = isMessageCapsule 
+                            ? `Message Capsule: ${data.message.substring(0, 50)}...`
+                            : `Image Capsule: ${data.images.length} image(s)`;
+
+                        const capsuleItem = document.createElement('div');
+                        capsuleItem.classList.add('flex', 'flex-col', 'sm:flex-row', 'items-center', 'justify-between', 'p-4', 'rounded-lg', 'bg-gray-100', 'shadow-sm', 'hover:bg-gray-200', 'transition-colors');
+                        capsuleItem.innerHTML = `
+                            <div class="flex-grow text-left w-full sm:w-auto">
+                                <p class="font-semibold text-gray-800">${capsuleSummary}</p>
+                                <p class="text-sm text-gray-500">Open Date: ${openDate.toLocaleString()}</p>
+                            </div>
+                            <div class="mt-2 sm:mt-0 flex items-center space-x-2">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${status === 'Opened' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">${status}</span>
+                                <a href="${capsuleLink}" target="_blank" class="text-indigo-600 hover:text-indigo-800 transition duration-300">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                <button data-id="${doc.id}" class="delete-btn text-red-600 hover:text-red-800 transition duration-300">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        capsulesList.appendChild(capsuleItem);
+                    });
+
+                    document.querySelectorAll('.delete-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const capsuleId = e.currentTarget.dataset.id;
+                            showConfirmModal(capsuleId);
+                        });
+                    });
+                }
+            }, (error) => {
+                console.error("Error fetching documents:", error);
+                capsulesList.innerHTML = '<p class="text-center text-red-500">Failed to load capsules. Please try again.</p>';
+            });
+        }
+        
+        // Display a single capsule and countdown
+        function displayCapsule(capsuleId) {
+            const capsuleRef = doc(db, `artifacts/${appId}/public/data/timeCapsules`, capsuleId);
+
+            onSnapshot(capsuleRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const openDate = data.openDate.toDate();
+                    const now = new Date();
+                    
+                    // Early reveal logic (5 minutes before opening)
+                    const fiveMinutesInMs = 5 * 60 * 1000;
+                    const timeUntilOpen = openDate.getTime() - now.getTime();
+                    const isEarlyRevealTime = timeUntilOpen <= fiveMinutesInMs && timeUntilOpen > 0;
+                    
+                    if (now >= openDate) {
+                        clearInterval(countdownInterval);
+                        countdownTimer.textContent = "CAPSULE OPENED!";
+                        capsuleStatusText.textContent = "The capsule has been opened.";
+                        
+                        mainContentHeader.classList.remove('hidden');
+                        capsuleImagesContent.classList.remove('hidden');
+
+                        if (data.type === 'message') {
+                           capsuleMessageContent.textContent = data.message;
+                           capsuleMessageContent.classList.remove('hidden');
+                           capsuleImagesContent.classList.add('hidden'); // Hide image container for message capsules
+                        } else if (data.type === 'image') {
+                           capsuleMessageContent.classList.add('hidden'); // Hide message content for image capsules
+                           capsuleImagesContent.classList.remove('hidden');
+                           capsuleImagesContent.innerHTML = '';
+                           if (data.images && data.images.length > 0) {
+                               data.images.forEach(base64String => {
+                                   const img = document.createElement('img');
+                                   img.src = base64String;
+                                   img.classList.add('w-32', 'h-32', 'object-cover', 'rounded-lg', 'border', 'border-gray-300');
+                                   capsuleImagesContent.appendChild(img);
+                               });
+                           }
+                        }
+                        
+                        if (data.optionalMessage) {
+                            capsuleOptionalMessageContent.textContent = `A special message from the creator:\n${data.optionalMessage}`;
+                            capsuleOptionalMessageContent.classList.remove('hidden');
+                        } else {
+                            capsuleOptionalMessageContent.classList.add('hidden');
+                        }
+                        
+                        capsuleContentContainer.classList.remove('hidden');
+                    } else if (isEarlyRevealTime) {
+                        clearInterval(countdownInterval);
+                        countdownTimer.textContent = "REVEALING SHORTLY...";
+                        capsuleStatusText.textContent = "The capsule is revealing a special message!";
+
+                        mainContentHeader.classList.add('hidden');
+                        capsuleMessageContent.classList.add('hidden');
+                        capsuleImagesContent.classList.add('hidden');
+
+                        if (data.optionalMessage) {
+                            capsuleOptionalMessageContent.textContent = `A special message from the creator:\n${data.optionalMessage}`;
+                            capsuleOptionalMessageContent.classList.remove('hidden');
+                        } else {
+                            capsuleOptionalMessageContent.textContent = 'No early message was included.';
+                            capsuleOptionalMessageContent.classList.remove('hidden');
+                        }
+                        
+                        capsuleContentContainer.classList.remove('hidden');
+                    } else {
+                        updateCountdown(openDate);
+                        if (!countdownInterval) {
+                            countdownInterval = setInterval(() => updateCountdown(openDate), 1000);
+                        }
+                        capsuleContentContainer.classList.add('hidden');
+                    }
+                } else {
+                    showModal("Error", "This time capsule does not exist.");
+                    console.error("No such document!");
+                }
+            }, (error) => {
+                showModal("Error", "Failed to load capsule. Please check your link.");
+                console.error("Error getting document:", error);
+            });
+        }
+
+        function updateCountdown(targetDate) {
+            const now = new Date().getTime();
+            const distance = targetDate.getTime() - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                countdownTimer.textContent = "CAPSULE OPENED!";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            countdownTimer.textContent = `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
