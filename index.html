@@ -446,9 +446,11 @@
                 if (isSigningUp) {
                     await createUserWithEmailAndPassword(auth, email, password);
                     authStatus.textContent = "Account created successfully!";
+                    showSubView(createMessageView, 'letter-theme');
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
                     authStatus.textContent = "Signed in successfully!";
+                    showSubView(createMessageView, 'letter-theme');
                 }
             } catch (error) {
                 console.error("Authentication error:", error);
@@ -793,7 +795,7 @@
                         
                         capsuleContentContainer.classList.remove('hidden');
                     } else {
-                        updateCountdown(openDate);
+                        updateCountdown(targetDate);
                         if (!countdownInterval) {
                             countdownInterval = setInterval(() => updateCountdown(openDate), 1000);
                         }
