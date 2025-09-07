@@ -89,16 +89,18 @@
                 <button id="logout-btn" class="py-2 px-4 sm:px-6 rounded-full text-white font-semibold shadow-md transition duration-300 flex-grow hover:scale-105 bg-red-500 hover:bg-red-600">Log Out</button>
             </div>
 
-            <!-- Login View -->
+            <!-- Login View (REVISED) -->
             <div id="login-view" class="text-center">
-                <h2 class="text-2xl font-bold mb-4">Sign In or Sign Up</h2>
-                <div class="space-y-4">
+                <div class="space-y-6">
+                    <h2 id="auth-heading" class="text-2xl font-bold text-center">Sign In</h2>
+                    <p id="auth-status" class="text-red-500 text-sm h-6"></p>
                     <input type="email" id="email-input" placeholder="Enter your email" class="input-field border-gray-300 focus:ring-indigo-500" />
                     <input type="password" id="password-input" placeholder="Enter your password" class="input-field border-gray-300 focus:ring-indigo-500" />
-                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center">
-                        <button id="signin-btn" class="btn-primary bg-indigo-600 hover:bg-indigo-700">Sign In</button>
-                        <button id="signup-btn" class="btn-primary bg-teal-600 hover:bg-teal-700">Sign Up</button>
-                    </div>
+                    <button id="auth-btn" class="btn-primary bg-indigo-600 hover:bg-indigo-700 w-full">Sign In</button>
+                    <p class="text-center text-sm mt-4">
+                        <span id="toggle-text">Don't have an account?</span>
+                        <a href="#" id="auth-toggle-btn" class="text-indigo-600 hover:underline font-semibold transition-colors">Sign Up</a>
+                    </p>
                 </div>
             </div>
 
@@ -224,9 +226,19 @@
 
         setLogLevel('debug');
 
-        // Set this with your/firebase project config dynamically if needed
-        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
-        const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
+        // PASTE YOUR FIREBASE CONFIG HERE
+        // Example (replace with your own):
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // END OF CONFIG
+
+        const appId = firebaseConfig.appId;
         const initialAuthToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : undefined;
 
         let db, auth, userId, userEmail, isReady = false;
@@ -285,8 +297,11 @@
         // Login Elements
         const emailInput = document.getElementById('email-input');
         const passwordInput = document.getElementById('password-input');
-        const signinBtn = document.getElementById('signin-btn');
-        const signupBtn = document.getElementById('signup-btn');
+        const authBtn = document.getElementById('auth-btn');
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const authHeading = document.getElementById('auth-heading');
+        const authStatus = document.getElementById('auth-status');
+        let isSigningUp = false;
 
         // Viewer Elements
         const countdownTimer = document.getElementById('countdown-timer');
@@ -414,30 +429,54 @@
                 });
             }
         };
+        
+        // Login/Sign Up Logic
+        authToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isSigningUp = !isSigningUp;
+            authHeading.textContent = isSigningUp ? 'Sign Up' : 'Sign In';
+            authBtn.textContent = isSigningUp ? 'Create Account' : 'Sign In';
+            document.getElementById('toggle-text').textContent = isSigningUp ? 'Already have an account?' : 'Don\'t have an account?';
+            authToggleBtn.textContent = isSigningUp ? 'Sign In' : 'Sign Up';
+            authStatus.textContent = '';
+        });
 
-        // Navigation button listeners
-        signinBtn.addEventListener('click', async () => {
+        authBtn.addEventListener('click', async () => {
             const email = emailInput.value;
             const password = passwordInput.value;
+            if (!email || !password) {
+                authStatus.textContent = "Please enter both email and password.";
+                return;
+            }
+
+            authStatus.textContent = "Loading...";
+
             try {
-                await signInWithEmailAndPassword(auth, email, password);
+                if (isSigningUp) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    authStatus.textContent = "Account created successfully!";
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    authStatus.textContent = "Signed in successfully!";
+                }
             } catch (error) {
-                console.error("Sign In error:", error);
-                showModal("Sign In Failed", "Invalid email or password. Please try again.");
+                console.error("Authentication error:", error);
+                let message = "An error occurred. Please try again.";
+                if (error.code === 'auth/invalid-email') {
+                    message = "Please enter a valid email address.";
+                } else if (error.code === 'auth/user-disabled') {
+                    message = "Your account has been disabled.";
+                } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    message = "Invalid email or password.";
+                } else if (error.code === 'auth/weak-password') {
+                    message = "Password should be at least 6 characters.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    message = "This email is already in use.";
+                }
+                authStatus.textContent = message;
             }
         });
 
-        signupBtn.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                showModal("Account Created", "Your account has been created successfully. You are now logged in.");
-            } catch (error) {
-                console.error("Sign Up error:", error);
-                showModal("Sign Up Failed", "Failed to create account. Passwords must be at least 6 characters. " + error.message);
-            }
-        });
 
         logoutBtn.addEventListener('click', async () => {
             try {
@@ -643,154 +682,3 @@
         function fetchAndDisplayMyCapsules() {
             if (!isReady) return;
             capsulesList.innerHTML = '<p class="text-center text-gray-500">Loading your capsules...</p>';
-
-            const capsulesCollectionRef = collection(db, `artifacts/${appId}/public/data/timeCapsules`);
-            const q = query(capsulesCollectionRef, where("ownerId", "==", userId));
-
-            onSnapshot(q, (snapshot) => {
-                if (snapshot.empty) {
-                    capsulesList.innerHTML = '<p class="text-center text-gray-500">You have not created any capsules yet. Go to the home page to create one!</p>';
-                } else {
-                    let capsulesHtml = '';
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const openDate = data.openDate.toDate().toLocaleString();
-                        const capsuleId = doc.id;
-                        const cardTheme = data.type === 'message' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-blue-100 text-blue-800 border-blue-200';
-                        const linkColor = data.type === 'message' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600';
-                        const capsuleType = data.type.charAt(0).toUpperCase() + data.type.slice(1);
-                        const capsuleIcon = data.type === 'message' ? '<i class="fas fa-envelope mr-2"></i>' : '<i class="fas fa-image mr-2"></i>';
-
-                        capsulesHtml += `
-                            <div class="p-4 rounded-lg shadow-sm border card ${cardTheme}">
-                                <div class="flex items-center justify-between mb-2">
-                                    <p class="text-md font-semibold">${capsuleIcon} ${capsuleType} Capsule</p>
-                                    <button class="delete-capsule-btn text-red-600 hover:text-red-800 transition-colors" data-id="${capsuleId}" title="Delete Capsule">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </div>
-                                <p class="text-sm">Capsule ID: <span class="font-normal break-all">${capsuleId}</span></p>
-                                <p class="text-sm">Opens on: <span class="font-medium">${openDate}</span></p>
-                                <div class="mt-4 text-right">
-                                    <a href="index.html?capsuleId=${capsuleId}" class="py-2 px-4 rounded-full text-white text-sm transition duration-300 ${linkColor}">View Capsule</a>
-                                    <button class="copy-link-btn py-2 px-4 rounded-full text-white text-sm transition duration-300 bg-gray-500 hover:bg-gray-600" data-link="index.html?capsuleId=${capsuleId}">Copy Link</button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    capsulesList.innerHTML = capsulesHtml;
-
-                    document.querySelectorAll('.copy-link-btn').forEach(button => {
-                        button.addEventListener('click', (e) => {
-                            const linkToCopy = `${window.location.origin}/${e.target.dataset.link}`;
-                            navigator.clipboard.writeText(linkToCopy).then(() => {
-                                showModal("Copied!", "The capsule link has been copied to your clipboard.");
-                            }).catch(err => {
-                                console.error('Failed to copy text: ', err);
-                                showModal("Copy Failed", "Could not copy the link. Please copy it manually.");
-                            });
-                        });
-                    });
-
-                    document.querySelectorAll('.delete-capsule-btn').forEach(button => {
-                        button.addEventListener('click', (e) => {
-                            const capsuleId = e.currentTarget.dataset.id;
-                            showConfirmModal(capsuleId);
-                        });
-                    });
-                }
-            }, (error) => {
-                console.error("Error fetching my capsules: ", error);
-                capsulesList.innerHTML = '<p class="text-center text-red-500">Error loading your capsules. Please try again.</p>';
-            });
-        }
-
-        // Display a single capsule for a viewer
-        function displayCapsule(capsuleId) {
-            const capsuleDocRef = doc(db, `artifacts/${appId}/public/data/timeCapsules`, capsuleId);
-            onSnapshot(capsuleDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const openDate = data.openDate.toDate();
-                    const now = new Date();
-                    const fiveMinutesBefore = new Date(openDate.getTime() - 5 * 60 * 1000);
-
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                    }
-                    if (now >= openDate) {
-                        capsuleContentContainer.classList.remove('hidden');
-                        countdownTimer.textContent = 'Capsule is Open!';
-                        capsuleStatusText.textContent = 'This time capsule is now open.';
-                        if (data.type === 'message') {
-                            applyTheme('letter-theme');
-                            mainContentHeader.textContent = "Your Message from the Past:";
-                            capsuleMessageContent.textContent = data.message || 'No message provided.';
-                            capsuleMessageContent.classList.remove('hidden');
-                            capsuleImagesContent.classList.add('hidden');
-                        } else if (data.type === 'image') {
-                            applyTheme('image-theme');
-                            mainContentHeader.textContent = "Your Images from the Past:";
-                            capsuleImagesContent.classList.remove('hidden');
-                            capsuleMessageContent.classList.add('hidden');
-                            capsuleImagesContent.innerHTML = '';
-                            if (data.images && data.images.length > 0) {
-                                data.images.forEach(base64Data => {
-                                    const img = document.createElement('img');
-                                    img.src = base64Data;
-                                    img.classList.add('w-full', 'md:w-1/2', 'lg:w-1/3', 'rounded-lg', 'shadow-lg');
-                                    capsuleImagesContent.appendChild(img);
-                                });
-                            } else {
-                                capsuleImagesContent.innerHTML = '<p class="text-center text-gray-500">No images were found in this capsule.</p>';
-                            }
-                        }
-                        capsuleOptionalMessageContent.classList.add('hidden');
-                    } else if (now >= fiveMinutesBefore) {
-                        capsuleStatusText.textContent = 'The capsule is about to open!';
-                        capsuleOptionalMessageContent.textContent = data.optionalMessage || 'No optional message was provided.';
-                        capsuleOptionalMessageContent.classList.remove('hidden');
-                        countdownTimer.textContent = 'Less than 5 minutes!';
-                        countdownInterval = setInterval(() => {
-                            const distance = openDate.getTime() - new Date().getTime();
-                            if (distance <= 0) {
-                                clearInterval(countdownInterval);
-                                displayCapsule(capsuleId);
-                            } else {
-                                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                                countdownTimer.textContent = `${minutes}m ${seconds}s`;
-                            }
-                        }, 1000);
-                    } else {
-                        capsuleStatusText.textContent = 'The capsule is sealed.';
-                        countdownInterval = setInterval(() => {
-                            const distance = openDate.getTime() - new Date().getTime();
-                            if (distance <= 0) {
-                                clearInterval(countdownInterval);
-                                displayCapsule(capsuleId);
-                            } else {
-                                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                                countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-                            }
-                        }, 1000);
-                    }
-                } else {
-                    showModal("Not Found", "This capsule link is invalid or has been deleted.");
-                    countdownTimer.textContent = 'Not Found';
-                    capsuleStatusText.textContent = 'Invalid capsule link.';
-                    console.error("No such document!");
-                }
-            }, (error) => {
-                console.error("Error getting document: ", error);
-                showModal("Error", "There was an error loading the capsule. Please check your internet connection and try again.");
-                countdownTimer.textContent = 'Error';
-                capsuleStatusText.textContent = 'Error loading capsule.';
-            });
-        }
-    </script>
-</body>
-</html>
